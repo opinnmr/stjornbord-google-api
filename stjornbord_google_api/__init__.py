@@ -64,6 +64,48 @@ class Google(object):
 
         return credentials
 
+    # https://developers.google.com/admin-sdk/directory/v1/reference/users/get
+    @catch_api_exceptions
+    def user_get(self, username):
+        """
+        Fetch user, returns a Google User object or None if not found.
+        """
+        log.info("Fetching user %s", username)
+        try:
+            return self.service.users().get(userKey="%s@%s" % (username, self.domain)).execute()
+        except errors.HttpError, e:
+            if e.resp.status == 404:
+                # User does not exist, return None
+                log.debug("User doesn't exist %s", username)
+                return None
+            else:
+                raise
+
+    @catch_api_exceptions
+    def user_add(self, username, first_name, last_name, password,
+            suspended='false', password_hash_function="SHA-1"):
+        log.info("Adding user %s (%s %s), suspeded=%s", username, first_name, last_name, suspended)
+        user = self.service.users().insert(body={
+            "primaryEmail": "%s@%s" % (username, self.domain),
+            "password": password,
+            "hashFunction": password_hash_function,
+            "suspended": suspended,
+            "name": {
+                "familyName": last_name,
+                "givenName": first_name
+            }}).execute()
+
+        return user
+
+    # https://developers.google.com/admin-sdk/directory/v1/reference/users/update
+    @catch_api_exceptions
+    def user_mod(self, username, backend_user):
+        """
+        Update user, takes username (str) and Google User object.
+        """
+        log.info("Updating user %s (%s)", username, backend_user)
+        return self.service.users().update(userKey="%s@%s" % (username, self.domain),
+            body=backend_user).execute()
 
     @catch_api_exceptions
     def list_sync(self, name, members):
@@ -81,7 +123,10 @@ class Google(object):
             if e.resp.status == 404:
                 # List does not exist, create it!
                 log.info("Creating list %s as part of list_sync", list_email)
-                self.service.groups().insert(email=list_email).execute()
+                self.service.groups().insert(body={
+                    "groupKey": list_email,
+                    "email": list_email
+                    }).execute()
             else:
                 raise
 
