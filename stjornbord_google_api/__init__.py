@@ -123,10 +123,7 @@ class Google(object):
             if e.resp.status == 404:
                 # List does not exist, create it!
                 log.info("Creating list %s as part of list_sync", list_email)
-                self.service.groups().insert(body={
-                    "groupKey": list_email,
-                    "email": list_email
-                    }).execute()
+                self.service.groups().insert(body={"email": list_email}).execute()
             else:
                 raise
 
