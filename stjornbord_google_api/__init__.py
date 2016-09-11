@@ -172,7 +172,7 @@ class Google(object):
         except errors.HttpError, e:
             if e.resp.status == 404:
                 # List does not exist, return empty list
-                return None
+                return []
             raise e
 
 
